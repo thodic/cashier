@@ -345,17 +345,16 @@ class Subscription extends Model
      * Swap the subscription to a new Stripe plan.
      *
      * @param  string  $plan
+     * @param  int     $prorationDate
      * @return $this
      */
-    public function swap($plan)
+    public function swap($plan, $prorationDate = null)
     {
         $subscription = $this->asStripeSubscription();
 
         $subscription->plan = $plan;
 
         $subscription->prorate = $this->prorate;
-
-        $subscription->cancel_at_period_end = false;
 
         if (! is_null($this->billingCycleAnchor)) {
             $subscription->billing_cycle_anchor = $this->billingCycleAnchor;
@@ -377,9 +376,13 @@ class Subscription extends Model
             $subscription->quantity = $this->quantity;
         }
 
+        if ($prorationDate) {
+            $subscription->proration_date = $prorationDate;
+        }
+
         $subscription->save();
 
-        $this->user->invoice(['subscription' => $subscription->id]);
+        $this->user->invoice();
 
         $this->fill([
             'stripe_plan' => $plan,
